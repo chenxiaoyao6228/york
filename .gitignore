@@ -1,0 +1,11 @@
+.vscode/
+node_modules/
+.eslintcache
+storybook-static/
+build/
+tmp/
+temp/
+dist
+.env
+*.log
+.DS_Store

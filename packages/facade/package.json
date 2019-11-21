@@ -1,0 +1,35 @@
+{
+  "name": "@york/facade",
+  "version": "0.0.0",
+  "main": "index.js",
+  "author": "ChenXiaoyao <chenxiaoyao6228@163.com> (http://www.chenxiaoyao.cn/)",
+  "license": "MIT",
+  "scripts": {
+    "dev": "node examples/server.js",
+    "test": "echo 'not test yet'"
+  },
+  "dependencies": {
+    "@babel/cli": "7.7.0",
+    "@babel/core": "7.7.2",
+    "@babel/plugin-proposal-class-properties": "7.7.0",
+    "@babel/plugin-transform-react-jsx": "7.7.0",
+    "@babel/preset-env": "7.7.1",
+    "@babel/preset-react": "7.7.0",
+    "babel-loader": "8.0.6",
+    "clean-webpack-plugin": "3.0.0",
+    "css-loader": "3.2.0",
+    "express": "4.17.1",
+    "html-webpack-plugin": "3.2.0",
+    "less": "3.10.3",
+    "less-loader": "5.0.0",
+    "mini-css-extract-plugin": "0.8.0",
+    "react": "16.12.0",
+    "react-dom": "16.12.0",
+    "style-loader": "1.0.0",
+    "webpack": "4.41.2",
+    "webpack-cli": "3.3.10",
+    "webpack-dev-server": "3.9.0",
+    "webpack-dev-middleware": "3.7.2",
+    "webpack-hot-middleware": "2.25.0"
+  }
+}

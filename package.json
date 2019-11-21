@@ -1,0 +1,56 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:facade",
+    "test": "npm run test:facade",
+    "dev:facade": "lerna run dev --scope @york/facade",
+    "test:facade": "lerna run test --scope @york/facade",
+    "build:facade": "lerna run build --scope @york/facade",
+    "commit": "git-cz",
+    "lint": "eslint --fix -c .eslintrc.js --ignore-path .gitignore --cache --ext .js,jsx .",
+    "clean": "lerna clean && yarn workspaces run clean"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^8.1.0",
+    "@commitlint/config-conventional": "^8.1.0",
+    "@commitlint/prompt": "~8.1.0",
+    "commitizen": "^4.0.3",
+    "cz-conventional-changelog": "~3.0.2",
+    "eslint": "^6.4.0",
+    "eslint-config-prettier": "^6.3.0",
+    "eslint-plugin-babel": "^5.3.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-react": "7.16.0",
+    "husky": "^3.0.5",
+    "jest": "^24.9.0",
+    "jest-config": "^24.9.0",
+    "lerna": "^3.18.5",
+    "lint-staged": "^9.2.5",
+    "prettier": "^1.18.2"
+  },
+  "lint-staged": {
+    "*.js": [
+      "npm run lint",
+      "npm run test",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commitmsg": "commitlint -E GIT_PARAMS"
+    }
+  },
+  "commitizen": {
+    "path": "./node_modules/cz-conventional-changelog"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
+}
