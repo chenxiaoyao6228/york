@@ -1,10 +1,6 @@
-import React from "react";
-import ReactDOM from "react-dom";
+import { React, ReactDOM } from "../../src";
 
-import "./index.less";
+const element = <div>Hello World</div>;
 
-function App() {
-  return <div>Hello World</div>;
-}
 const root = document.querySelector("#root");
-ReactDOM.render(<App />, root);
+ReactDOM.render(element, root);
