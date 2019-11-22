@@ -1,6 +1,19 @@
 import { React, ReactDOM } from "../../src";
 
-const element = <div>Hello World</div>;
+const container = document.getElementById("root");
 
-const root = document.querySelector("#root");
-ReactDOM.render(element, root);
+const updateValue = e => {
+  rerender(e.target.value);
+};
+
+const rerender = value => {
+  const element = (
+    <div>
+      <input onInput={updateValue} value={value} />
+      <h2>Hello {value}</h2>
+    </div>
+  );
+  ReactDOM.render(element, container);
+};
+
+rerender("World");
