@@ -31,15 +31,29 @@ function commitRoot() {
 }
 
 // 通过递归的方式遍历整棵树
+function commitDeletion(domParent, fiber) {
+  if (fiber.dom) {
+    domParent.removeChild(fiber.dom);
+  } else {
+    commitDeletion(domParent, fiber.child);
+  }
+}
+
 function commitWork(fiber) {
   if (!fiber) {
     return;
   }
-  const domParent = fiber.parent.dom;
+  let domParentFiber = fiber.parent;
+  // 函数组件没有dom, 需要不断向上查找找到有dom的父节点
+  while (!domParentFiber.dom) {
+    domParentFiber = domParentFiber.parent;
+  }
+  const domParent = domParentFiber.dom;
+
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
     domParent.appendChild(fiber.dom);
   } else if (fiber.effectTag === "DELETION") {
-    domParent.removeChild(fiber.dom);
+    commitDeletion(domParent, fiber);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     updateDom(fiber.dom, fiber.alternate, fiber.props);
   }
@@ -65,7 +79,7 @@ function workLoop(deadline) {
 
 // 处理当前fiber, 对dom节点进行增, 删, 改
 // 并返回下一个需要处理的fiber对象
-function performUnitOfWork(fiber) {
+function updateHostComponent(fiber) {
   // 初次渲染, dom节点还没有生成,根据fiber逐步生成dom树
   if (!fiber.dom) {
     fiber.dom = createDom(fiber);
@@ -74,6 +88,23 @@ function performUnitOfWork(fiber) {
   const elements = fiber.props.children;
   // reconcileChildren
   reconcileChildren(fiber, elements);
+}
+
+function updateFunctionalComponent(fiber) {
+  wipFiber = fiber;
+  hookIndex = 0;
+  wipFiber.hooks = []; // 搜集该组件的变化,允许多次setState
+  const children = [fiber.type(fiber.props)];
+  reconcileChildren(fiber, children);
+}
+
+function performUnitOfWork(fiber) {
+  const isFunctionalComponent = fiber.type instanceof Function;
+  if (isFunctionalComponent) {
+    updateFunctionalComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
+  }
   // 返回下一个要处理的fiber对象
   // 如果有子元素, 返回第一个子元素
   if (fiber.child) {
@@ -151,3 +182,38 @@ function reconcileChildren(wipFiber, elements) {
 
 // 将workLoop添加到requestIdleCallBack
 requestIdleCallback(workLoop);
+
+let wipFiber = null;
+let hookIndex = null;
+
+export function useState(initial) {
+  const oldHook =
+    wipFiber.alternate &&
+    wipFiber.alternate.hooks &&
+    wipFiber.alternate.hooks[hookIndex];
+  const hook = {
+    state: oldHook ? oldHook.state : initial,
+    queue: []
+  };
+
+  const actions = oldHook ? oldHook.queue : [];
+  actions.forEach(action => {
+    hook.state = action(hook.state);
+  });
+
+  const setState = action => {
+    hook.queue.push(action);
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot
+    };
+
+    nextUnitOfWork = wipRoot;
+    deletions = [];
+  };
+
+  wipFiber.hooks.push(hook);
+  hookIndex++;
+  return [hook.state, setState];
+}

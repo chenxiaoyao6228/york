@@ -1,8 +1,9 @@
 import { createElement } from "./element.js";
-import { render } from "./render.js";
+import { render, useState } from "./render.js";
 
 export const React = {
-  createElement
+  createElement,
+  useState
 };
 
 export const ReactDOM = {
