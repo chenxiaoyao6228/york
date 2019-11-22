@@ -6,7 +6,7 @@ let currentRoot = null; // 只有在commit阶段才被赋值
 let deletions = null; // 收集被删除的对象
 
 export function render(element, container) {
-  // 如果是#root根节点, 创建rootFiber
+  // #root根节点, 创建rootFiber
   wipRoot = {
     dom: container,
     props: {
@@ -86,7 +86,7 @@ function updateHostComponent(fiber) {
   }
   // 遍历children, 为创建新的fiber对象, 建立fiberTree
   const elements = fiber.props.children;
-  // reconcileChildren
+  //
   reconcileChildren(fiber, elements);
 }
 
@@ -98,12 +98,14 @@ function updateFunctionalComponent(fiber) {
   reconcileChildren(fiber, children);
 }
 
+// 从<App />节点开始
 function performUnitOfWork(fiber) {
   const isFunctionalComponent = fiber.type instanceof Function;
+  // TODO class component支持
   if (isFunctionalComponent) {
     updateFunctionalComponent(fiber);
   } else {
-    updateHostComponent(fiber);
+    updateHostComponent(fiber); // 更新浏览器宿主,也就是原生dom
   }
   // 返回下一个要处理的fiber对象
   // 如果有子元素, 返回第一个子元素
