@@ -1,13 +1,12 @@
 import { createDom, updateDom } from "./dom";
+import { renderer } from "./renderer";
+import { resetHookIndex } from "./hook";
 
-let nextUnitOfWork = null; //  需要处理的下一个fiber对象
-let wipRoot = null; // workInProgress树, #root对应的节点
-let currentRoot = null; // 只有在commit阶段才被赋值
-let deletions = null; // 收集被删除的对象
+export let wipFiber = null;
 
 export function render(element, container) {
   // #root根节点, 创建rootFiber
-  wipRoot = {
+  renderer.wipRoot = {
     dom: container,
     props: {
       children: [element]
@@ -17,17 +16,36 @@ export function render(element, container) {
     // reconciliation的两个阶段: effect(节点变更收集), commit(将effect更新到dom)
     // effect收集阶段利用requestIdleCallback, 可以中断
     // 每次commit阶段都会从fiberRoot节点开始, 不能中断, 中断之后需要从头开始
-    alternate: currentRoot // alternate指向旧的workInProgress树
+    alternate: renderer.currentRoot // alternate指向旧的workInProgress树
   };
-  deletions = [];
-  nextUnitOfWork = wipRoot;
+  renderer.deletions = [];
+  renderer.nextUnitOfWork = renderer.wipRoot;
+  requestIdleCallback(workLoop);
 }
 
+// 工作循环, 使得更新的处理能够中断
+// 只要浏览器有空闲时间, 就会回来处理下一个fiber
+function workLoop(deadline) {
+  let shouldYield = false;
+  while (renderer.nextUnitOfWork && !shouldYield) {
+    renderer.nextUnitOfWork = performUnitOfWork(renderer.nextUnitOfWork);
+    shouldYield = deadline.timeRemaining() < 1;
+  }
+
+  //进入commit阶段
+  if (!renderer.nextUnitOfWork && renderer.wipRoot) {
+    commitRoot(renderer.wipRoot.child);
+  }
+  requestIdleCallback(workLoop);
+}
+
+// 将workLoop添加到requestIdleCallBack
+
 function commitRoot() {
-  deletions.forEach(commitWork);
-  commitWork(wipRoot.child); // 从<App />节点开始更新
-  currentRoot = wipRoot;
-  wipRoot = null;
+  renderer.deletions.forEach(commitWork);
+  commitWork(renderer.wipRoot.child); // 从<App />节点开始更新
+  renderer.currentRoot = renderer.wipRoot;
+  renderer.wipRoot = null;
 }
 
 // 通过递归的方式遍历整棵树
@@ -61,22 +79,6 @@ function commitWork(fiber) {
   commitWork(fiber.sibling);
 }
 
-// 工作循环, 使得更新的处理能够中断
-// 只要浏览器有空闲时间, 就会回来处理下一个fiber
-function workLoop(deadline) {
-  let shouldYield = false;
-  while (nextUnitOfWork && !shouldYield) {
-    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
-    shouldYield = deadline.timeRemaining() < 1;
-  }
-
-  //进入commit阶段
-  if (!nextUnitOfWork && wipRoot) {
-    commitRoot(wipRoot.child);
-  }
-  requestIdleCallback(workLoop);
-}
-
 // 处理当前fiber, 对dom节点进行增, 删, 改
 // 并返回下一个需要处理的fiber对象
 function updateHostComponent(fiber) {
@@ -86,13 +88,13 @@ function updateHostComponent(fiber) {
   }
   // 遍历children, 为创建新的fiber对象, 建立fiberTree
   const elements = fiber.props.children;
-  //
+  // 遍历children, 1.建立sibling关系, 2.打tag
   reconcileChildren(fiber, elements);
 }
 
 function updateFunctionalComponent(fiber) {
   wipFiber = fiber;
-  hookIndex = 0;
+  resetHookIndex();
   wipFiber.hooks = []; // 搜集该组件的变化,允许多次setState
   const children = [fiber.type(fiber.props)];
   reconcileChildren(fiber, children);
@@ -123,11 +125,12 @@ function performUnitOfWork(fiber) {
   }
 }
 
-// 遍历children, 打tag
+// 从dom树建立sibling关系只能通过parent.children的遍历来建立
 function reconcileChildren(wipFiber, elements) {
   let index = 0;
-  //存在则返回oldFiber的child
+  //存在则返回oldFiber的child, 也就是<App />对应的fiber
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
+  // 建立一个空的链表的节点,第一个child是它的next节点, 通过不断移动, 建立完整的链条
   let prevSibling = null;
 
   while (index < elements.length || oldFiber != null) {
@@ -163,7 +166,7 @@ function reconcileChildren(wipFiber, elements) {
     // 删除节点
     if (oldFiber && !sameType) {
       oldFiber.effectTag = "DELETION";
-      deletions.push(oldFiber);
+      renderer.deletions.push(oldFiber);
     }
 
     if (oldFiber) {
@@ -180,42 +183,4 @@ function reconcileChildren(wipFiber, elements) {
     prevSibling = newFiber;
     index++;
   }
-}
-
-// 将workLoop添加到requestIdleCallBack
-requestIdleCallback(workLoop);
-
-let wipFiber = null;
-let hookIndex = null;
-
-export function useState(initial) {
-  const oldHook =
-    wipFiber.alternate &&
-    wipFiber.alternate.hooks &&
-    wipFiber.alternate.hooks[hookIndex];
-  const hook = {
-    state: oldHook ? oldHook.state : initial,
-    queue: []
-  };
-
-  const actions = oldHook ? oldHook.queue : [];
-  actions.forEach(action => {
-    hook.state = action(hook.state);
-  });
-
-  const setState = action => {
-    hook.queue.push(action);
-    wipRoot = {
-      dom: currentRoot.dom,
-      props: currentRoot.props,
-      alternate: currentRoot
-    };
-
-    nextUnitOfWork = wipRoot;
-    deletions = [];
-  };
-
-  wipFiber.hooks.push(hook);
-  hookIndex++;
-  return [hook.state, setState];
 }
