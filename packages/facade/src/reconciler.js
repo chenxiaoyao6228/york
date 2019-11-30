@@ -2,20 +2,15 @@ import { createDom, updateDom } from "./dom";
 import { renderer } from "./renderer";
 import { resetHookIndex } from "./hook";
 
-export let wipFiber = null;
-
-export function render(element, container) {
-  // #root根节点, 创建rootFiber
+export let wipFiber = null; // 当前正在被处理的fiber对象
+export function render(vnode, container) {
+  // 从wipRoot开始，不断构建wip
   renderer.wipRoot = {
     dom: container,
     props: {
-      children: [element]
+      children: [vnode]
     },
-    // 关键点: 更新操作是通过与alternate对象的比对来完成的
     // currentRoot只有在effect收集结束, 进行commit阶段才会被赋值
-    // reconciliation的两个阶段: effect(节点变更收集), commit(将effect更新到dom)
-    // effect收集阶段利用requestIdleCallback, 可以中断
-    // 每次commit阶段都会从fiberRoot节点开始, 不能中断, 中断之后需要从头开始
     alternate: renderer.currentRoot // alternate指向旧的workInProgress树
   };
   renderer.deletions = [];
@@ -23,8 +18,7 @@ export function render(element, container) {
   requestIdleCallback(workLoop);
 }
 
-// 工作循环, 使得更新的处理能够中断
-// 只要浏览器有空闲时间, 就会回来处理下一个fiber
+// 处理当前节点， 返回下一个待处理的节点
 function workLoop(deadline) {
   let shouldYield = false;
   while (renderer.nextUnitOfWork && !shouldYield) {
@@ -39,12 +33,37 @@ function workLoop(deadline) {
   requestIdleCallback(workLoop);
 }
 
-// 将workLoop添加到requestIdleCallBack
+// 从<App />节点开始
+function performUnitOfWork(fiber) {
+  const isFunctionalComponent = fiber.type instanceof Function;
+  // TODO class component支持
+  if (isFunctionalComponent) {
+    updateFunctionalComponent(fiber);
+  } else {
+    updateHostComponent(fiber); // 更新浏览器宿主,也就是原生dom
+  }
+  // 返回下一个要处理的fiber对象
+  // 如果有子元素, 返回第一个子元素
+  if (fiber.child) {
+    return fiber.child;
+  }
+  let nextFiber = fiber;
+  while (nextFiber) {
+    //  无则检查sibling
+    if (nextFiber.sibling) {
+      return nextFiber.sibling;
+    }
+    // sibling也没有就返回parent, 寻找parent.sibling
+    nextFiber = nextFiber.parent;
+  }
+}
 
 function commitRoot() {
   renderer.deletions.forEach(commitWork);
   commitWork(renderer.wipRoot.child); // 从<App />节点开始更新
-  renderer.currentRoot = renderer.wipRoot;
+
+  // 更新完成,清空
+  renderer.currentRoot = renderer.wipRoot; //
   renderer.wipRoot = null;
 }
 
@@ -87,75 +106,49 @@ function updateHostComponent(fiber) {
     fiber.dom = createDom(fiber);
   }
   // 遍历children, 为创建新的fiber对象, 建立fiberTree
-  const elements = fiber.props.children;
+  const children = fiber.props.children;
   // 遍历children, 1.建立sibling关系, 2.打tag
-  reconcileChildren(fiber, elements);
+  reconcileChildren(fiber, children);
 }
 
 function updateFunctionalComponent(fiber) {
   wipFiber = fiber;
   resetHookIndex();
   wipFiber.hooks = []; // 搜集该组件的变化,允许多次setState
-  const children = [fiber.type(fiber.props)];
+  const children = [fiber.type(fiber.props)]; // type为函数
   reconcileChildren(fiber, children);
 }
 
-// 从<App />节点开始
-function performUnitOfWork(fiber) {
-  const isFunctionalComponent = fiber.type instanceof Function;
-  // TODO class component支持
-  if (isFunctionalComponent) {
-    updateFunctionalComponent(fiber);
-  } else {
-    updateHostComponent(fiber); // 更新浏览器宿主,也就是原生dom
-  }
-  // 返回下一个要处理的fiber对象
-  // 如果有子元素, 返回第一个子元素
-  if (fiber.child) {
-    return fiber.child;
-  }
-  let nextFiber = fiber;
-  while (nextFiber) {
-    //  无则检查sibling
-    if (nextFiber.sibling) {
-      return nextFiber.sibling;
-    }
-    // sibling也没有就返回parent, 寻找parent.sibling
-    nextFiber = nextFiber.parent;
-  }
-}
-
 // 从dom树建立sibling关系只能通过parent.children的遍历来建立
-function reconcileChildren(wipFiber, elements) {
+function reconcileChildren(wipFiber, children) {
   let index = 0;
-  //存在则返回oldFiber的child, 也就是<App />对应的fiber
-  let oldFiber = wipFiber.alternate && wipFiber.alternate.child;
-  // 建立一个空的链表的节点,第一个child是它的next节点, 通过不断移动, 建立完整的链条
+  let oldFiber = wipFiber.alternate && wipFiber.alternate.child; // 拿到子节点的fiber对象
+  // 建立一个dummyHead节点,第一个child是它的next节点, 通过不断移动, 建立完整的链条
   let prevSibling = null;
 
-  while (index < elements.length || oldFiber != null) {
-    const element = elements[index];
+  while (index < children.length || oldFiber != null) {
+    const child = children[index];
     let newFiber = null;
     // TODO key更新支持
-    const sameType = oldFiber && element && element.type == oldFiber.type;
+    const sameType = oldFiber && child && child.type == oldFiber.type;
 
     // 更新节点
     if (sameType) {
       newFiber = {
         type: oldFiber.type,
-        props: element.props,
+        props: child.props,
         dom: oldFiber.dom,
-        parent: wipFiber,
-        alternate: oldFiber,
+        parent: wipFiber, // parent属性用于dom节点的增加,删除，修改
+        alternate: oldFiber, // 每个节点都有一个alternate对象指向旧的fiber
         effectTag: "UPDATE"
       };
     }
 
     // 新增节点
-    if (element && !sameType) {
+    if (child && !sameType) {
       newFiber = {
-        type: element.type,
-        props: element.props,
+        type: child.type,
+        props: child.props,
         dom: null,
         parent: wipFiber,
         alternate: null,
@@ -177,6 +170,7 @@ function reconcileChildren(wipFiber, elements) {
       wipFiber.child = newFiber; // 保存第一个child的索引
     } else {
       // 除了第一个子元素外, 其他的子元素通过sibling链接到整体中
+      // 此时标有'DELETION'的节点的fiber已经脱离整个fiber链条,commit阶段删除该不点不会对wip造成影响
       prevSibling.sibling = newFiber;
     }
 
@@ -184,5 +178,3 @@ function reconcileChildren(wipFiber, elements) {
     index++;
   }
 }
-
-console.log(111);

@@ -5,6 +5,7 @@ const container = document.getElementById("root");
 function Counter() {
   const [state, setState] = React.useState(1);
   const handleClick = function() {
+																		debugger; // eslint-disable-line
     setState(c => c + 1);
     setState(c => c + 2);
   };
