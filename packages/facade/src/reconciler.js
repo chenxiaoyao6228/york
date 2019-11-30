@@ -184,3 +184,5 @@ function reconcileChildren(wipFiber, elements) {
     index++;
   }
 }
+
+console.log(111);
