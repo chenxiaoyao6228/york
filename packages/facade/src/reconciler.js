@@ -2,9 +2,8 @@ import { createDom, updateDom } from "./dom";
 import { renderer } from "./renderer";
 import { resetHookIndex } from "./hook";
 
-export let wipFiber = null; // 当前正在被处理的fiber对象
+renderer.wipFiber = null; // 当前正在被处理的fiber节点对象
 export function render(vnode, container) {
-  // 从wipRoot开始，不断构建wip
   renderer.wipRoot = {
     dom: container,
     props: {
@@ -13,7 +12,7 @@ export function render(vnode, container) {
     // currentRoot只有在effect收集结束, 进行commit阶段才会被赋值
     alternate: renderer.currentRoot // alternate指向旧的workInProgress树
   };
-  renderer.deletions = [];
+  // 从wipRoot(#root的fiber)开始，不断构建wip
   renderer.nextUnitOfWork = renderer.wipRoot;
   requestIdleCallback(workLoop);
 }
@@ -23,7 +22,6 @@ export function workLoop(deadline) {
   let shouldYield = false;
   while (renderer.nextUnitOfWork && !shouldYield) {
     renderer.nextUnitOfWork = performUnitOfWork(renderer.nextUnitOfWork);
-    console.log(deadline.timeRemaining());
     shouldYield = deadline.timeRemaining() < 1;
   }
 
@@ -36,8 +34,7 @@ export function workLoop(deadline) {
 
 // 从<App />节点开始
 function performUnitOfWork(fiber) {
-  const isFunctionalComponent = fiber.type instanceof Function;
-  // TODO class component支持
+  const isFunctionalComponent = isFn(fiber.type);
   if (isFunctionalComponent) {
     updateFunctionalComponent(fiber);
   } else {
@@ -113,14 +110,14 @@ function updateHostComponent(fiber) {
 }
 
 function updateFunctionalComponent(fiber) {
-  wipFiber = fiber;
+  renderer.wipFiber = fiber;
   resetHookIndex(); // 每个fiber对象的index都从0开始
-  wipFiber.hooks = [];
+  renderer.wipFiber.hooks = [];
   const children = [fiber.type(fiber.props)]; // 调用函数组件的构造函数, 返回vnode
   reconcileChildren(fiber, children);
 }
 
-// 从dom树建立sibling关系只能通过parent.children的遍历来建立
+// 从vdom树建立sibling关系只能通过parent.children的遍历来建立
 function reconcileChildren(wipFiber, children) {
   let index = 0;
   let oldFiber = wipFiber.alternate && wipFiber.alternate.child; // 拿到子节点的fiber对象
@@ -129,7 +126,7 @@ function reconcileChildren(wipFiber, children) {
 
   while (index < children.length || oldFiber != null) {
     const child = children[index];
-    let newFiber = null;
+    let newFiber = null; // 每个vnode建立对应的fiber
     // TODO key更新支持
     const sameType = oldFiber && child && child.type == oldFiber.type;
 
@@ -180,6 +177,9 @@ function reconcileChildren(wipFiber, children) {
   }
 }
 
+function isFn(fn) {
+  return fn instanceof Function;
+}
 // 函数式组件
 // jsx
 // function App(props) {

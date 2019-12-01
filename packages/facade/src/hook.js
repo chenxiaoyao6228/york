@@ -1,5 +1,4 @@
 import { renderer } from "./renderer";
-import { wipFiber } from "./reconciler";
 
 let hookIndex = 0;
 
@@ -15,9 +14,9 @@ export function useState(initialVal) {
 export function useReducer(reducer, initialVal) {
   // 一个组件上可以有多个hook,根据index进行区分， 每个hook里面可以有多个action
   const oldHook =
-    wipFiber.alternate &&
-    wipFiber.alternate.hooks &&
-    wipFiber.alternate.hooks[hookIndex];
+    renderer.wipFiber.alternate &&
+    renderer.wipFiber.alternate.hooks &&
+    renderer.wipFiber.alternate.hooks[hookIndex];
 
   const state = oldHook ? oldHook.state : initialVal;
 
@@ -35,13 +34,12 @@ export function useReducer(reducer, initialVal) {
         ? action(hook.state)
         : reducer(hook.state, action);
   });
-  wipFiber.hooks.push(hook);
+  renderer.wipFiber.hooks.push(hook);
   // 处理下一个hook
   hookIndex++;
   // 每个hook对象里面有一个队列, 用于保存一次更新内的多次变化
   // action可能是对象, 或者函数
   const dispatch = action => {
-    console.log("action", action);
     hook.actions.push(action);
 
     // scheduleWork
