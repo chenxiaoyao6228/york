@@ -1,9 +1,10 @@
 import { createElement } from "./element";
 import { render } from "./reconciler";
-import { useState } from "./hook";
+import { useState, useReducer } from "./hook";
 export const React = {
   createElement,
-  useState
+  useState,
+  useReducer
 };
 
 export const ReactDOM = {

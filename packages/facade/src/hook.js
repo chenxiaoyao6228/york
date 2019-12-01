@@ -1,44 +1,57 @@
 import { renderer } from "./renderer";
 import { wipFiber } from "./reconciler";
 
-let hookIndex = null;
+let hookIndex = 0;
+
 export function resetHookIndex() {
   hookIndex = 0;
 }
 
-export function useState(initial) {
-  return useReducer(null, initial);
+export function useState(initialVal) {
+  return useReducer(null, initialVal);
 }
 
-export function useReducer(reducer, initial) {
+// 每次调用函数组件的构造函数时, 会执行里面的函数
+export function useReducer(reducer, initialVal) {
+  // 一个组件上可以有多个hook,根据index进行区分， 每个hook里面可以有多个action
   const oldHook =
     wipFiber.alternate &&
     wipFiber.alternate.hooks &&
     wipFiber.alternate.hooks[hookIndex];
-  //  创建一个hook对象
+
+  const state = oldHook ? oldHook.state : initialVal;
+
   const hook = {
-    state: oldHook ? oldHook.state : initial,
-    queue: []
+    state: state,
+    actions: [] // action队列
   };
   // 更新hook的值
-  const actions = oldHook ? oldHook.queue : [];
+  const actions = oldHook ? oldHook.actions : [];
   // 多次的setState实际上会集合到一次上
+
   actions.forEach(action => {
-    hook.state = action(hook.state);
+    hook.state =
+      action instanceof Function
+        ? action(hook.state)
+        : reducer(hook.state, action);
   });
   wipFiber.hooks.push(hook);
+  // 处理下一个hook
   hookIndex++;
   // 每个hook对象里面有一个队列, 用于保存一次更新内的多次变化
-  const setState = action => {
-    hook.queue.push(action);
+  // action可能是对象, 或者函数
+  const dispatch = action => {
+    console.log("action", action);
+    hook.actions.push(action);
+
+    // scheduleWork
     renderer.wipRoot = {
       dom: renderer.currentRoot.dom,
       props: renderer.currentRoot.props,
       alternate: renderer.currentRoot
     };
-
     renderer.nextUnitOfWork = renderer.wipRoot;
     renderer.deletions = [];
   };
-  return [hook.state, setState];
+  return [hook.state, dispatch];
 }

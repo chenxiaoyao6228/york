@@ -19,10 +19,11 @@ export function render(vnode, container) {
 }
 
 // 处理当前节点， 返回下一个待处理的节点
-function workLoop(deadline) {
+export function workLoop(deadline) {
   let shouldYield = false;
   while (renderer.nextUnitOfWork && !shouldYield) {
     renderer.nextUnitOfWork = performUnitOfWork(renderer.nextUnitOfWork);
+    console.log(deadline.timeRemaining());
     shouldYield = deadline.timeRemaining() < 1;
   }
 
@@ -63,7 +64,7 @@ function commitRoot() {
   commitWork(renderer.wipRoot.child); // 从<App />节点开始更新
 
   // 更新完成,清空
-  renderer.currentRoot = renderer.wipRoot; //
+  renderer.currentRoot = renderer.wipRoot;
   renderer.wipRoot = null;
 }
 
@@ -88,7 +89,7 @@ function commitWork(fiber) {
   const domParent = domParentFiber.dom;
 
   if (fiber.effectTag === "PLACEMENT" && fiber.dom != null) {
-    domParent.appendChild(fiber.dom);
+    domParent.appendChild(fiber.dom); // 在commit之前仅仅是生成了dom,并没有挂在到真实的dom上面
   } else if (fiber.effectTag === "DELETION") {
     commitDeletion(domParent, fiber);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
@@ -113,9 +114,9 @@ function updateHostComponent(fiber) {
 
 function updateFunctionalComponent(fiber) {
   wipFiber = fiber;
-  resetHookIndex();
-  wipFiber.hooks = []; // 搜集该组件的变化,允许多次setState
-  const children = [fiber.type(fiber.props)]; // type为函数
+  resetHookIndex(); // 每个fiber对象的index都从0开始
+  wipFiber.hooks = [];
+  const children = [fiber.type(fiber.props)]; // 调用函数组件的构造函数, 返回vnode
   reconcileChildren(fiber, children);
 }
 
@@ -170,7 +171,7 @@ function reconcileChildren(wipFiber, children) {
       wipFiber.child = newFiber; // 保存第一个child的索引
     } else {
       // 除了第一个子元素外, 其他的子元素通过sibling链接到整体中
-      // 此时标有'DELETION'的节点的fiber已经脱离整个fiber链条,commit阶段删除该不点不会对wip造成影响
+      // 此时标有'DELETION'的节点的fiber已经脱离整个fiber链条,commit阶段删除该节点不会对wip造成影响
       prevSibling.sibling = newFiber;
     }
 
@@ -178,3 +179,16 @@ function reconcileChildren(wipFiber, children) {
     index++;
   }
 }
+
+// 函数式组件
+// jsx
+// function App(props) {
+//   return (
+//     <h1>Hello, {props.name}</h1>
+//   )
+// }
+
+// //编译之后
+// function App(props) {
+//   return React.createElement("h1", null, "Hello, ", props.name);
+// }
