@@ -3,14 +3,16 @@
 
 ## TODO
 * createElement && render
-* class component支持
 * fiber && reconciliation
-* functional component
-* hooks
+* functional component && useState && useReducer 
+* useEffect
+* key支持
+* context
 * portal
+* children方法
 ...
 
-## 感谢
+## 特别感谢
 * Pomb大佬的[build-your-own-reac](https://pomb.us/build-your-own-react/)教程
 * 方正大佬的[为Luy实现React Fiber架构](https://zhuanlan.zhihu.com/p/37098539)
 * 司徒大大的[Javascript框架设计](https://book.douban.com/subject/27133542/)
