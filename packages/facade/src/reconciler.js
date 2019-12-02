@@ -1,33 +1,42 @@
 import { createDom, updateDom } from "./dom";
-import { renderer } from "./renderer";
 import { resetHookIndex } from "./hook";
 
-renderer.wipFiber = null; // 当前正在被处理的fiber节点对象
+export let nextUnitOfWork = null; //  需要处理的下一个fiber对象; 浏览器空闲的时候会处理
+export let wipRoot = null; // 本次更新的wip; 根节点
+export let wipFiber = null; // 正在被处理的fiber节点
+export let currentRoot = null; // commit阶段被赋值,下次更新的alternate
+export let deletions = [];
+
 export function render(vnode, container) {
-  renderer.wipRoot = {
+  wipRoot = {
     dom: container,
     props: {
       children: [vnode]
     },
     // currentRoot只有在effect收集结束, 进行commit阶段才会被赋值
-    alternate: renderer.currentRoot // alternate指向旧的workInProgress树
+    alternate: currentRoot // alternate指向旧的workInProgress树
   };
-  // 从wipRoot(#root的fiber)开始，不断构建wip
-  renderer.nextUnitOfWork = renderer.wipRoot;
+  scheduleWork(wipRoot, false);
+}
+
+export function scheduleWork(fiber, isUpdate) {
+  console.log(isUpdate);
+  nextUnitOfWork = fiber;
+  deletions = [];
   requestIdleCallback(workLoop);
 }
 
 // 处理当前节点， 返回下一个待处理的节点
 export function workLoop(deadline) {
   let shouldYield = false;
-  while (renderer.nextUnitOfWork && !shouldYield) {
-    renderer.nextUnitOfWork = performUnitOfWork(renderer.nextUnitOfWork);
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
 
   //进入commit阶段
-  if (!renderer.nextUnitOfWork && renderer.wipRoot) {
-    commitRoot(renderer.wipRoot.child);
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot(wipRoot.child);
   }
   requestIdleCallback(workLoop);
 }
@@ -57,12 +66,12 @@ function performUnitOfWork(fiber) {
 }
 
 function commitRoot() {
-  renderer.deletions.forEach(commitWork);
-  commitWork(renderer.wipRoot.child); // 从<App />节点开始更新
+  deletions.forEach(commitWork);
+  commitWork(wipRoot.child); // 从<App />节点开始更新
 
   // 更新完成,清空
-  renderer.currentRoot = renderer.wipRoot;
-  renderer.wipRoot = null;
+  currentRoot = wipRoot;
+  wipRoot = null;
 }
 
 // 通过递归的方式遍历整棵树
@@ -96,8 +105,7 @@ function commitWork(fiber) {
   commitWork(fiber.sibling);
 }
 
-// 处理当前fiber, 对dom节点进行增, 删, 改
-// 并返回下一个需要处理的fiber对象
+// 处理当前fiber,并返回下一个需要处理的fiber对象
 function updateHostComponent(fiber) {
   // 初次渲染, dom节点还没有生成,根据fiber逐步生成dom树
   if (!fiber.dom) {
@@ -110,13 +118,12 @@ function updateHostComponent(fiber) {
 }
 
 function updateFunctionalComponent(fiber) {
-  renderer.wipFiber = fiber;
-  resetHookIndex(); // 每个fiber对象的index都从0开始
-  renderer.wipFiber.hooks = [];
+  wipFiber = fiber;
+  resetHookIndex(); // 重置index
+  // wipFiber.hooks = {}; // 清空hooks,
   const children = [fiber.type(fiber.props)]; // 调用函数组件的构造函数, 返回vnode
   reconcileChildren(fiber, children);
 }
-
 // 从vdom树建立sibling关系只能通过parent.children的遍历来建立
 function reconcileChildren(wipFiber, children) {
   let index = 0;
@@ -157,7 +164,7 @@ function reconcileChildren(wipFiber, children) {
     // 删除节点
     if (oldFiber && !sameType) {
       oldFiber.effectTag = "DELETION";
-      renderer.deletions.push(oldFiber);
+      deletions.push(oldFiber);
     }
 
     if (oldFiber) {
@@ -177,7 +184,7 @@ function reconcileChildren(wipFiber, children) {
   }
 }
 
-function isFn(fn) {
+export function isFn(fn) {
   return fn instanceof Function;
 }
 // 函数式组件
