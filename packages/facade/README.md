@@ -12,8 +12,11 @@
 * children方法
 ...
 
-## 特别感谢
-* Pomb大佬的[build-your-own-reac](https://pomb.us/build-your-own-react/)教程
-* 方正大佬的[为Luy实现React Fiber架构](https://zhuanlan.zhihu.com/p/37098539)
-* 司徒大大的[Javascript框架设计](https://book.douban.com/subject/27133542/)
-* Dan大神的[fiber架构讲解](https://www.youtube.com/watch?v=aS41Y_eyNrU)
+## 更多阅读
+* [build-your-own-react](https://pomb.us/build-your-own-react/)教程
+* [为Luy实现React Fiber架构](https://zhuanlan.zhihu.com/p/37098539)
+* [Javascript框架设计](https://book.douban.com/subject/27133542/)
+* [fiber架构讲解](https://www.youtube.com/watch?v=aS41Y_eyNrU)
+* [深入剖析 React Concurrent](https://zhuanlan.zhihu.com/p/60307571)
+* [Scheduling in React](https://philippspiess.com/scheduling-in-react/)
+* [React团队谈React事件系统](https://www.youtube.com/watch?v=aS41Y_eyNrU)
