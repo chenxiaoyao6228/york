@@ -1,4 +1,4 @@
-import { isFn, wipFiber, wipRoot, scheduleWork } from "./reconciler";
+import { isFn, wipFiber, scheduleWork, scheduling } from "./reconciler";
 
 let hookIndex = 0;
 
@@ -16,6 +16,7 @@ export function useReducer(reducer, initialVal) {
   const hook = getHook(hookIndex++);
 
   const setState = value => {
+    if (scheduling) return;
     let newValue = reducer
       ? reducer(hook[0], value)
       : isFn(value)
@@ -23,7 +24,7 @@ export function useReducer(reducer, initialVal) {
       : value;
 
     hook[0] = newValue;
-    scheduleWork(wipRoot, false);
+    scheduleWork(wipFiber, true);
   };
   if (hook.length) {
     return [hook[0], setState];
@@ -34,10 +35,16 @@ export function useReducer(reducer, initialVal) {
 }
 
 function getHook(index) {
-  let hooks =
-    wipFiber.hooks || (wipFiber.hooks = { list: [], effect: [], cleanup: [] });
-  if (index >= hooks.list.length) {
-    hooks.list.push([]);
+  if (!wipFiber.hooks) {
+    if (wipFiber.alternate && wipFiber.alternate.hooks) {
+      wipFiber.hooks = {};
+      wipFiber.hooks.list = wipFiber.alternate.hooks.list.slice(); // 层层闭包查找
+    } else {
+      wipFiber.hooks = { list: [], effect: [], cleanup: [] };
+    }
   }
-  return hooks.list[index] || [];
+  if (index >= wipFiber.hooks.list.length) {
+    wipFiber.hooks.list.push([]);
+  }
+  return wipFiber.hooks.list[index];
 }

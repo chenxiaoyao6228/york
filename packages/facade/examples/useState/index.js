@@ -6,16 +6,11 @@ function Counter() {
   const [state1, setState1] = React.useState(0);
   // const [state2, setState2] = React.useState(0);
   const handler = () => {
-    console.log("111");
-    setState1(c => c + 1);
+    setState1(function(c) {
+      return c + 1;
+    });
   };
-  return (
-    <div>
-      <h1>useState</h1>
-      <p>Count1: {state1}</p>
-      <button onClick={handler}>+</button>
-    </div>
-  );
+  return <button onClick={handler}>{state1}</button>;
 }
 
 // setCount(count + 1)这种setState的形式
@@ -54,6 +49,6 @@ function Counter() {
 // 		</div>
 // 	);
 // }
-
+console.log(222);
 const element = <Counter />;
 ReactDOM.render(element, container);

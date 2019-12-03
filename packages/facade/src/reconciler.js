@@ -6,6 +6,7 @@ export let wipRoot = null; // 本次更新的wip; 根节点
 export let wipFiber = null; // 正在被处理的fiber节点
 export let currentRoot = null; // commit阶段被赋值,下次更新的alternate
 export let deletions = [];
+export let scheduling = false;
 
 export function render(vnode, container) {
   wipRoot = {
@@ -16,13 +17,21 @@ export function render(vnode, container) {
     // currentRoot只有在effect收集结束, 进行commit阶段才会被赋值
     alternate: currentRoot // alternate指向旧的workInProgress树
   };
+  nextUnitOfWork = wipRoot;
   scheduleWork(wipRoot, false);
 }
 
 export function scheduleWork(fiber, isUpdate) {
-  console.log(isUpdate);
-  nextUnitOfWork = fiber;
+  if (isUpdate) {
+    wipRoot = {
+      dom: currentRoot.dom,
+      props: currentRoot.props,
+      alternate: currentRoot
+    };
+    nextUnitOfWork = wipRoot;
+  }
   deletions = [];
+  scheduling = true;
   requestIdleCallback(workLoop);
 }
 
@@ -72,6 +81,7 @@ function commitRoot() {
   // 更新完成,清空
   currentRoot = wipRoot;
   wipRoot = null;
+  scheduling = false;
 }
 
 // 通过递归的方式遍历整棵树
