@@ -4,7 +4,6 @@ const webpack = require("webpack");
 // const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 // const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
 module.exports = {
   mode: "development",
   entry: fs.readdirSync(__dirname).reduce((entries, dir) => {
