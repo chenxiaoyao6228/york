@@ -1,14 +1,19 @@
 import { React, ReactDOM } from "../../src";
+// import React from 'react'
+// import ReactDOM from 'react-dom'
 
 const container = document.getElementById("root");
-
 function Counter() {
   const [state1, setState1] = React.useState(0);
   // const [state2, setState2] = React.useState(0);
   const handler = () => {
     setState1(function(c) {
+      console.log(c);
       return c + 1;
     });
+    // setState2(function(c) {
+    //   return c + 1;
+    // });
   };
   return <button onClick={handler}>{state1}</button>;
 }
@@ -49,6 +54,5 @@ function Counter() {
 // 		</div>
 // 	);
 // }
-console.log(222);
 const element = <Counter />;
 ReactDOM.render(element, container);

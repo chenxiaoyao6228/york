@@ -1,5 +1,5 @@
-import { createDom, updateDom } from "./dom";
 import { resetHookIndex } from "./hook";
+import { createDom, updateDom } from "./dom";
 
 export let nextUnitOfWork = null; //  需要处理的下一个fiber对象; 浏览器空闲的时候会处理
 export let wipRoot = null; // 本次更新的wip; 根节点
@@ -7,31 +7,29 @@ export let wipFiber = null; // 正在被处理的fiber节点
 export let currentRoot = null; // commit阶段被赋值,下次更新的alternate
 export let deletions = [];
 export let scheduling = false;
-
+// let uuid = 0;
 export function render(vnode, container) {
   wipRoot = {
     dom: container,
     props: {
       children: [vnode]
     },
-    // currentRoot只有在effect收集结束, 进行commit阶段才会被赋值
     alternate: currentRoot // alternate指向旧的workInProgress树
   };
-  nextUnitOfWork = wipRoot;
-  scheduleWork(wipRoot, false);
+  scheduleWork(false);
 }
 
-export function scheduleWork(fiber, isUpdate) {
+export function scheduleWork(isUpdate) {
   if (isUpdate) {
     wipRoot = {
       dom: currentRoot.dom,
       props: currentRoot.props,
       alternate: currentRoot
     };
-    nextUnitOfWork = wipRoot;
+    // scheduling = true;
   }
+  nextUnitOfWork = wipRoot;
   deletions = [];
-  scheduling = true;
   requestIdleCallback(workLoop);
 }
 
@@ -39,12 +37,14 @@ export function scheduleWork(fiber, isUpdate) {
 export function workLoop(deadline) {
   let shouldYield = false;
   while (nextUnitOfWork && !shouldYield) {
+    console.log("进入workLoop");
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
 
   //进入commit阶段
   if (!nextUnitOfWork && wipRoot) {
+    console.log("进入commit");
     commitRoot(wipRoot.child);
   }
   requestIdleCallback(workLoop);
@@ -130,7 +130,6 @@ function updateHostComponent(fiber) {
 function updateFunctionalComponent(fiber) {
   wipFiber = fiber;
   resetHookIndex(); // 重置index
-  // wipFiber.hooks = {}; // 清空hooks,
   const children = [fiber.type(fiber.props)]; // 调用函数组件的构造函数, 返回vnode
   reconcileChildren(fiber, children);
 }

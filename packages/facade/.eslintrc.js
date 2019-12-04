@@ -32,6 +32,6 @@ module.exports = {
 	rules: {
 		'prettier/prettier': 'error',
 		'no-unused-vars': 'off', // 提交的时候gitHook会检测这些
-		'no-debugger': 0 // 同上 
+		'no-debugger': 0 // 同上
 	}
 };

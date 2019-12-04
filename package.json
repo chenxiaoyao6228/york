@@ -5,7 +5,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev:facade",
+    "dev": "lerna run dev",
     "test": "npm run test:facade",
     "dev:facade": "lerna run dev --scope @york/facade",
     "test:facade": "lerna run test --scope @york/facade",
