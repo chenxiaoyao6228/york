@@ -21,8 +21,7 @@ function Counter() {
 
   return (
     <div>
-      <h1>useState</h1>
-      <p>Count1: {count}</p>
+      <p>Count: {count}</p>
       <button onClick={handler}>+</button>
     </div>
   );

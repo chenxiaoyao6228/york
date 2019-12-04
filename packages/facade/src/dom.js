@@ -4,7 +4,7 @@ export function updateDom(dom, oldProps, newProps) {
     let newValue = newProps[name];
 
     if (oldValue == newValue || name === "children") {
-      console.log("111");
+      return;
     } else if (name === "style") {
       for (const k in { ...oldValue, ...newValue }) {
         if (!(oldValue && newValue && oldValue[k] === newValue[k])) {

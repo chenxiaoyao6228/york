@@ -6,7 +6,6 @@ export let wipRoot = null; // 本次更新的wip; 根节点
 export let wipFiber = null; // 正在被处理的fiber节点
 export let currentRoot = null; // commit阶段被赋值,下次更新的alternate
 export let deletions = [];
-export let scheduling = false;
 
 export function render(vnode, container) {
   wipRoot = {
@@ -26,7 +25,6 @@ export function scheduleWork(isUpdate) {
       props: currentRoot.props,
       alternate: currentRoot
     };
-    // scheduling = true;
   }
   nextUnitOfWork = wipRoot;
   deletions = [];
@@ -79,7 +77,6 @@ function commitRoot() {
   // 更新完成,清空
   currentRoot = wipRoot;
   wipRoot = null;
-  scheduling = false;
 }
 
 // 通过递归的方式遍历整棵树
@@ -109,6 +106,7 @@ function commitWork(fiber) {
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
     updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   }
+  runEffect(fiber);
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
@@ -194,15 +192,16 @@ function reconcileChildren(wipFiber, children) {
 export function isFn(fn) {
   return fn instanceof Function;
 }
-// 函数式组件
-// jsx
-// function App(props) {
-//   return (
-//     <h1>Hello, {props.name}</h1>
-//   )
-// }
 
-// //编译之后
-// function App(props) {
-//   return React.createElement("h1", null, "Hello, ", props.name);
-// }
+function runEffect(fiber) {
+  requestAnimationFrame(() => {
+    if (fiber.hooks) {
+      fiber.hooks.cleanup.forEach(c => c());
+      fiber.hooks.effect.forEach((e, i) => {
+        const res = e[0]();
+        if (res) fiber.hooks.cleanup[i] = res;
+      });
+      fiber.hooks.effect = [];
+    }
+  });
+}
