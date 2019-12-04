@@ -1,5 +1,7 @@
 import { React, ReactDOM } from "../../src";
-
+// import React from "react";
+// import ReactDOM from "react-dom";
+const { render } = ReactDOM;
 const container = document.getElementById("root");
 
 const updateValue = e => {
@@ -13,7 +15,7 @@ const rerender = value => {
       <h2>Hello {value}</h2>
     </div>
   );
-  ReactDOM.render(element, container);
+  render(element, container);
 };
 
 rerender("World");

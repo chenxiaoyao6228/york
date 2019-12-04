@@ -58,8 +58,7 @@ export function useCallback(cb, deps) {
 function getHook(index) {
   if (!wipFiber.hooks) {
     if (wipFiber.alternate && wipFiber.alternate.hooks) {
-      wipFiber.hooks = {};
-      wipFiber.hooks.list = wipFiber.alternate.hooks.list.slice();
+      wipFiber.hooks = wipFiber.alternate.hooks;
     } else {
       wipFiber.hooks = {
         list: [],

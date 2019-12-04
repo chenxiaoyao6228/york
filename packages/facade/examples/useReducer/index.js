@@ -1,4 +1,8 @@
 import { React, ReactDOM } from "../../src";
+// import React from "react";
+// import ReactDOM from "react-dom";
+const { useReducer } = React;
+const { render } = ReactDOM;
 
 const container = document.getElementById("root");
 
@@ -16,7 +20,7 @@ function reducer(state, action) {
 }
 
 function Counter() {
-  const [state, dispatch] = React.useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState);
   return (
     <div>
       Count: {state.count}
@@ -28,4 +32,4 @@ function Counter() {
 }
 
 const element = <Counter />; // jsx(createElement)先执行,返回vnode
-ReactDOM.render(element, container);
+render(element, container);

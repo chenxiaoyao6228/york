@@ -1,22 +1,22 @@
 import { React, ReactDOM } from "../../src";
 // import React from 'react'
 // import ReactDOM from 'react-dom'
+const { useState } = React;
+const { render } = ReactDOM;
 
 const container = document.getElementById("root");
 function Counter() {
-  const [state1, setState1] = React.useState(0);
-  // const [state2, setState2] = React.useState(0);
+  const [state, setState] = useState(0);
   const handler = () => {
-    setState1(function(c) {
+    setState(function(c) {
       console.log(c);
       return c + 1;
     });
-    // setState2(function(c) {
-    //   return c + 1;
-    // });
   };
-  return <button onClick={handler}>{state1}</button>;
+  return <button onClick={handler}>{state}</button>;
 }
+const element = <Counter />;
+render(element, container);
 
 // setCount(count + 1)这种setState的形式
 // function Counter() {
@@ -54,5 +54,3 @@ function Counter() {
 // 		</div>
 // 	);
 // }
-const element = <Counter />;
-ReactDOM.render(element, container);
