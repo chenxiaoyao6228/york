@@ -7,7 +7,7 @@ export let wipFiber = null; // 正在被处理的fiber节点
 export let currentRoot = null; // commit阶段被赋值,下次更新的alternate
 export let deletions = [];
 export let scheduling = false;
-// let uuid = 0;
+
 export function render(vnode, container) {
   wipRoot = {
     dom: container,
@@ -37,14 +37,12 @@ export function scheduleWork(isUpdate) {
 export function workLoop(deadline) {
   let shouldYield = false;
   while (nextUnitOfWork && !shouldYield) {
-    console.log("进入workLoop");
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
     shouldYield = deadline.timeRemaining() < 1;
   }
 
   //进入commit阶段
   if (!nextUnitOfWork && wipRoot) {
-    console.log("进入commit");
     commitRoot(wipRoot.child);
   }
   requestIdleCallback(workLoop);
@@ -109,7 +107,7 @@ function commitWork(fiber) {
   } else if (fiber.effectTag === "DELETION") {
     commitDeletion(domParent, fiber);
   } else if (fiber.effectTag === "UPDATE" && fiber.dom != null) {
-    updateDom(fiber.dom, fiber.alternate, fiber.props);
+    updateDom(fiber.dom, fiber.alternate.props, fiber.props);
   }
   commitWork(fiber.child);
   commitWork(fiber.sibling);

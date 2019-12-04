@@ -1,11 +1,28 @@
-const isEvent = key => key.startsWith("on");
-const isProperty = key => key !== "children" && !isEvent(key);
-const isNew = (prev, next) => key => prev[key] !== next[key];
-const isGone = (prev, next) => key => !(key in next);
+export function updateDom(dom, oldProps, newProps) {
+  for (let name in { ...oldProps, ...newProps }) {
+    let oldValue = oldProps[name];
+    let newValue = newProps[name];
 
-export function updateDom(dom, prevProps, nextProps) {
-  updateEvents(dom, prevProps, nextProps);
-  updateProps(prevProps, nextProps, dom);
+    if (oldValue == newValue || name === "children") {
+      console.log("111");
+    } else if (name === "style") {
+      for (const k in { ...oldValue, ...newValue }) {
+        if (!(oldValue && newValue && oldValue[k] === newValue[k])) {
+          dom[name][k] = (newValue && newValue[k]) || "";
+        }
+      }
+    } else if (name[0] === "o" && name[1] === "n") {
+      name = name.slice(2).toLowerCase();
+      if (oldValue) dom.removeEventListener(name, oldValue);
+      dom.addEventListener(name, newValue);
+    } else if (name in dom && !(dom instanceof SVGElement)) {
+      dom[name] = newValue == null ? "" : newValue;
+    } else if (newValue == null || newValue === false) {
+      dom.removeAttribute(name);
+    } else {
+      dom.setAttribute(name, newValue);
+    }
+  }
 }
 
 export function createDom(fiber) {
@@ -16,38 +33,4 @@ export function createDom(fiber) {
 
   updateDom(dom, {}, fiber.props);
   return dom;
-}
-
-function updateProps(prevProps, nextProps, dom) {
-  Object.keys(prevProps)
-    .filter(isProperty)
-    .filter(isGone(prevProps, nextProps))
-    .forEach(name => {
-      dom[name] = "";
-    });
-  Object.keys(nextProps)
-    .filter(isProperty)
-    .filter(isNew(prevProps, nextProps))
-    .forEach(name => {
-      dom[name] = nextProps[name];
-    });
-}
-
-function updateEvents(dom, prevProps, nextProps) {
-  // 移除老的或者变更的事件
-  Object.keys(prevProps)
-    .filter(isEvent)
-    .filter(key => !(key in nextProps) || isNew(prevProps, nextProps)(key))
-    .forEach(name => {
-      const eventType = name.toLowerCase().substring(2);
-      dom.removeEventListener(eventType, prevProps[name]);
-    });
-  // 添加新的事件监听
-  Object.keys(nextProps)
-    .filter(isEvent)
-    .filter(isNew(prevProps, nextProps))
-    .forEach(name => {
-      const eventType = name.toLowerCase().substring(2);
-      dom.addEventListener(eventType, nextProps[name]);
-    });
 }
